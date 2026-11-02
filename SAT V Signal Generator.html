@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SAT V Signal Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00f7c3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SAT V Signal">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo.jpg">
+<link rel="icon" type="image/jpeg" href="logo.jpg">
+
+<style>
+:root{
+  --bg1:#4e54c8;
+  --bg2:#8f94fb;
+  --bg3:#6a82fb;
+  --bg4:#8fd3f4;
+  --bg5:#1fa2ff;
+  --bg6:#12d8fa;
+  --bg7:#a6ffcb;
+  --card:#1f2b6d;
+  --text:#ffffff;
+  --accent:#00f7c3;
+  --speed:18s;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  color:var(--text);
+  background:
+    linear-gradient(120deg,
+      var(--bg1),var(--bg2),var(--bg3),
+      var(--bg4),var(--bg5),var(--bg6),var(--bg7)
+    );
+  background-size:600% 600%;
+  animation:bgmove var(--speed) ease infinite;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+@keyframes bgmove{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+canvas{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+}
+
+.container{
+  max-width:1200px;
+  margin:30px auto;
+  background:rgba(15,25,90,.85);
+  padding:20px;
+  border-radius:18px;
+  box-shadow:0 0 40px rgba(0,0,0,.6);
+}
+
+h1{text-align:center}
+
+.time-box{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.time-box input{
+  flex:1;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+}
+
+.market-box{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:8px;
+  margin:15px 0;
+}
+
+.market{
+  background:#16225a;
+  padding:6px;
+  border-radius:6px;
+}
+
+button{
+  background:var(--accent);
+  border:none;
+  padding:12px;
+  border-radius:12px;
+  cursor:pointer;
+  width:100%;
+  font-size:16px;
+  margin-top:10px;
+}
+
+table{
+  width:100%;
+  margin-top:20px;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid rgba(255,255,255,.2);
+  text-align:center;
+}
+
+.theme-bar button{
+  width:auto;
+  margin:4px;
+  padding:6px 12px;
+}
+
+.color-picker{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+
+.lock{
+  position:fixed;
+  inset:0;
+  background:#000d;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+.lock-box{
+  background:#111;
+  padding:20px;
+  border-radius:14px;
+  width:300px;
+  text-align:center;
+}
+
+.lock-box input{
+  width:100%;
+  padding:8px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<!-- PASSWORD -->
+<div class="lock" id="lock">
+  <div class="lock-box">
+    <h3>🔐 ENTER PASSWORD</h3>
+    <input type="password" id="pass">
+    <button onclick="unlock()">UNLOCK</button>
+    <p id="err" style="color:red"></p>
+  </div>
+</div>
+
+<div class="container">
+<div style="text-align:center;margin-bottom:20px;">
+  <img src="logo.jpg" alt="SAT V Logo" style="width:120px;height:120px;border-radius:50%;border:4px solid var(--accent);box-shadow:0 0 20px rgba(0,247,195,0.5);">
+</div>
+<h1>SAT V SIGNAL GENERATOR</h1>
+
+<div class="time-box">
+<input type="time" id="start" value="03:00">
+<input type="time" id="end" value="06:00">
+</div>
+
+<div class="market-box" id="markets"></div>
+
+<button onclick="generate()">GENERATE SIGNAL</button>
+<button onclick="copyTG()">📋 COPY TELEGRAM</button>
+
+<h3>Themes</h3>
+<div class="theme-bar">
+<button onclick="theme('blue')">BLUE</button>
+<button onclick="theme('neon')">NEON</button>
+<button onclick="theme('gold')">GOLD</button>
+<button onclick="theme('red')">DEEP RED</button>
+<button onclick="theme('cyber')">CYBER GREEN</button>
+</div>
+
+<h3>Custom Gradient (7 Colors)</h3>
+<div class="color-picker">
+<input type="color" onchange="setBG(1,this.value)">
+<input type="color" onchange="setBG(2,this.value)">
+<input type="color" onchange="setBG(3,this.value)">
+<input type="color" onchange="setBG(4,this.value)">
+<input type="color" onchange="setBG(5,this.value)">
+<input type="color" onchange="setBG(6,this.value)">
+<input type="color" onchange="setBG(7,this.value)">
+<input type="color" onchange="setAccent(this.value)">
+</div>
+
+<label>Gradient Speed</label>
+<input type="range" min="6" max="40" value="18" oninput="setSpeed(this.value)">
+
+<table>
+<thead>
+<tr><th>#</th><th>MARKET</th><th>TIME</th><th>SIGNAL</th></tr>
+</thead>
+<tbody id="out"></tbody>
+</table>
+</div>
+
+<script>
+/* PASSWORD */
+function unlock(){
+  if(pass.value==="SATVTRADER786"){
+    lock.style.display="none";
+  }else err.textContent="Wrong Password";
+}
+
+/* MARKETS */
+const PAIRS=[
+"USDPKR-OTC","USDTRY-OTC","USDCAD-OTC","USDCHF-OTC","USDINR-OTC",
+"USDBRL-OTC","USDNZD-OTC","AUDUSD-OTC","EURUSD-OTC",
+"USDIDR-OTC","USDEGP-OTC","USDMXN-OTC","USDZAR-OTC","USDARS-OTC",
+"NZDCHF-OTC","DOGECOIN-OTC","ETHEREUM-OTC","RIPPLE-OTC",
+"XAUUSD-OTC","XAGUSD-OTC"
+];
+
+markets.innerHTML=PAIRS.map(p=>
+`<label class="market"><input type="checkbox" value="${p}"> ${p}</label>`
+).join("");
+
+/* SIGNAL */
+function generate(){
+  const s=start.value.split(":");
+  const e=end.value.split(":");
+  let st=+s[0]*60+ +s[1];
+  let en=+e[0]*60+ +e[1];
+
+  let sel=[...document.querySelectorAll("input[type=checkbox]:checked")].map(x=>x.value);
+  if(!sel.length){
+    alert("Please select at least one market pair");
+    return;
+  }
+
+  let t=st,arr=[];
+  while(t<en){
+    t+=Math.floor(Math.random()*6)+6;
+    if(t<en) arr.push(t);
+  }
+
+  out.innerHTML="";
+
+  arr.forEach((x,i)=>{
+    let pair=sel[Math.floor(Math.random()*sel.length)];
+    let h=String(Math.floor(x/60)).padStart(2,"0");
+    let m=String(x%60).padStart(2,"0");
+    let sig=Math.random()>0.5?"BUY":"PUT";
+    out.innerHTML+=`<tr><td>${i+1}</td><td>${pair}</td><td>${h}:${m}</td><td>${sig}</td></tr>`;
+  });
+}
+
+/* TELEGRAM FONT */
+const uni={A:"𝙰",B:"𝙱",C:"𝙲",D:"𝙳",E:"𝙴",F:"𝙵",G:"𝙶",H:"𝙷",I:"𝙸",
+J:"𝙹",K:"𝙺",L:"𝙻",M:"𝙼",N:"𝙽",O:"𝙾",P:"𝙿",Q:"𝚀",R:"𝚁",
+S:"𝚂",T:"𝚃",U:"𝚄",V:"𝚅",W:"𝚆",X:"𝚇",Y:"𝚈",Z:"𝚉",
+0:"𝟶",1:"𝟷",2:"𝟸",3:"𝟹",4:"𝟺",5:"𝟻",6:"𝟼",7:"𝟽",8:"𝟾",9:"𝟿",":":"∶","-":"-"};
+
+function f(t){return t.split("").map(c=>uni[c]||c).join("")}
+
+/* COPY */
+function copyTG(){
+  let txt=`═══════════════════════════════\n`;
+  txt+=`🚀 SAT V SIGNAL GENERATOR 🚀\n`;
+  txt+=`📱 @SATVTRADER\n`;
+  txt+=`═══════════════════════════════\n\n`;
+  [...out.rows].forEach(r=>{
+    txt+=`📊${f(r.cells[1].innerText)} | ⏱${f(r.cells[2].innerText)} |-» ${f(r.cells[3].innerText)}\n`;
+  });
+  txt+=`\n⚠️ Disclaimer: Signals are based on available data. Not financial advice. Trade responsibly.\n`;
+  navigator.clipboard.writeText(txt);
+  alert("Copied to clipboard!");
+}
+
+/* THEMES */
+function theme(t){
+  if(t==="blue")set("#4e54c8","#8f94fb","#6a82fb","#8fd3f4","#1fa2ff","#12d8fa","#a6ffcb","#00f7c3");
+  if(t==="neon")set("#00f260","#0575e6","#00f260","#0575e6","#00c6ff","#0072ff","#00f260","#00ffea");
+  if(t==="gold")set("#c7971d","#ffd86f","#c7971d","#ffb347","#ffd700","#ffcc33","#c7971d","#ffd700");
+  if(t==="red") set("#3a0000","#8b0000","#b30000","#ff0000","#660000","#990000","#ff4444","#ff5555");
+  if(t==="cyber")set("#003300","#006633","#009966","#00cc99","#00ffcc","#00ffaa","#00ddaa","#00ffcc");
+}
+
+function set(a,b,c,d,e,f,g,ac){
+  [a,b,c,d,e,f,g].forEach((v,i)=>document.documentElement.style.setProperty("--bg"+(i+1),v));
+  document.documentElement.style.setProperty("--accent",ac);
+}
+
+function setBG(n,v){
+  document.documentElement.style.setProperty("--bg"+n,v);
+}
+function setAccent(v){
+  document.documentElement.style.setProperty("--accent",v);
+}
+function setSpeed(v){
+  document.documentElement.style.setProperty("--speed",v+"s");
+}
+
+/* 3D PARTICLE + WAVE */
+const cvs=bg,ctx=cvs.getContext("2d");
+let W,H,p=[];
+function rs(){W=cvs.width=innerWidth;H=cvs.height=innerHeight}
+rs();onresize=rs;
+for(let i=0;i<90;i++)p.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2+1,v:Math.random()*0.6});
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  p.forEach(o=>{
+    ctx.beginPath();
+    ctx.arc(o.x,o.y,o.r,0,7);
+    ctx.fillStyle="rgba(255,255,255,.6)";
+    ctx.fill();
+    o.y-=o.v;
+    o.x+=Math.sin(o.y/30)*0.3;
+    if(o.y<0)o.y=H;
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+
+<script>
+// PWA Installation
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.log('Service Worker registration failed:', err);
+    });
+  });
+}
+
+// Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+</script>
+
+</body>
+</html>
